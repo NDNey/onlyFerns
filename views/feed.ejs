@@ -1,0 +1,37 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed</title>
+  <script src="https://kit.fontawesome.com/8ea013bdc7.js" crossorigin="anonymous"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+</head>
+<body>
+
+  <% for(var i=0; i<messages.length; i++) {%>
+       <li class="message">
+      <p>post Id<%= messages[i]._id %></p>
+      <p>posterId <%= messages[i].posterId %></p>
+      <p><%= messages[i].name %></p>
+      <img src="/images/uploads/<%= messages[i].img %>" alt="">
+      <a href="/page/<%=messages[i].posterId%>"><p><%= messages[i].postedBy %></p></a>
+      
+      <a href="/post/<%=messages[i]._id%>"> <span><%= messages[i].msg %></span> </a>
+      <p><%= messages[i].thumbUp %></p>
+      <p><i class="fa fa-thumbs-up" aria-hidden="true"></i></p>
+      <p><i class="fa fa-thumbs-down" aria-hidden="true"></i></p>
+      <p><i class="fa fa-trash-o" aria-hidden="true"></i></p>
+    </li>
+  
+  <% } %>
+  </ul>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+</body>
+
+
+</html><script></script>
+</html>
