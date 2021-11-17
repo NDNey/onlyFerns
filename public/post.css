@@ -1,0 +1,47 @@
+body {
+  font-family: 'Roboto', Arial, Helvetica, sans-serif;
+  background-image: linear-gradient(rgba(191, 236, 255, 0.37), white);
+}
+
+/* .postedImg {
+  width: 20em;
+} */
+
+.banner {
+  width: 20em;
+}
+
+.message {
+  margin: 2em auto;
+  align-items: center;
+  align-content: center;
+}
+
+.logo {
+  min-width: 10em;
+  max-width: 15em;
+}
+
+.btn,
+.btn:hover,
+.btn:active,
+.btn:visited {
+  display: block;
+  background-color: #1dc7fa !important;
+  border: none !important;
+  padding: 5px;
+  color: white;
+  font-size: 1.5em;
+  background-color: #1dc7fa;
+  font-family: 'Roboto', Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+
+.commentSection {
+  height: 200px;
+}
+a {
+  text-decoration: none;
+  color: black;
+}

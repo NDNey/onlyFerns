@@ -1,19 +1,22 @@
-var thumbUp = document.getElementsByClassName("fa-thumbs-up");
+ 
 var trash = document.getElementsByClassName("fa-trash-o");
-var thumbDown = document.getElementsByClassName("fa-thumbs-down");
+var thumbUp = document.getElementsByClassName("fa-seedling");
 
 Array.from(thumbUp).forEach(function(element) {
       element.addEventListener('click', function(){
-        const name = this.parentNode.parentNode.childNodes[1].innerText
-        const msg = this.parentNode.parentNode.childNodes[3].innerText
-        const thumbUp = parseFloat(this.parentNode.parentNode.childNodes[5].innerText)
+        const id = this.parentNode.parentNode.getAttribute('data-id')
+        const thumbUp = Number(this.parentNode.parentNode.children[0].innerText)
+     
+        
+
         fetch('messages', {
           method: 'put',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            'name': name,
-            'msg': msg,
+            'id': id,
             'thumbUp':thumbUp
+        
+      
           })
         })
         .then(response => {
@@ -26,17 +29,38 @@ Array.from(thumbUp).forEach(function(element) {
       });
 });
 
-Array.from(thumbDown).forEach(function(element) {
+Array.from(trash).forEach(function(element) {
+      element.addEventListener('click', function(){
+        const id = this.parentNode.parentNode.getAttribute('data-id')
+        const img = this.getAttribute('data-img')
+      
+        console.log(img);
+      
+        fetch('messages', {
+          method: 'delete',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            'id': id,
+            'img':img
+           
+          })
+        }).then(function (response) {
+          window.location.reload()
+        })
+      });
+});
+
+Array.from(thumbUp).forEach(function(element) {
   element.addEventListener('click', function(){
-    const name = this.parentNode.parentNode.childNodes[1].innerText
-    const msg = this.parentNode.parentNode.childNodes[3].innerText
-    const thumbUp = parseFloat(this.parentNode.parentNode.childNodes[5].innerText)
-    fetch('messagesDown', {
+    const id = this.parentNode.parentNode.getAttribute('data-id')
+    const thumbUp = Number(this.parentNode.parentNode.innerText)
+    fetch('thumbUpFeed', {
       method: 'put',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        'name': name,
-        'msg': msg,
+        'id': id,
         'thumbUp':thumbUp
       })
     })
@@ -48,23 +72,4 @@ Array.from(thumbDown).forEach(function(element) {
       window.location.reload(true)
     })
   });
-});
-
-Array.from(trash).forEach(function(element) {
-      element.addEventListener('click', function(){
-        const name = this.parentNode.parentNode.childNodes[1].innerText
-        const msg = this.parentNode.parentNode.childNodes[3].innerText
-        fetch('messages', {
-          method: 'delete',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'name': name,
-            'msg': msg
-          })
-        }).then(function (response) {
-          window.location.reload()
-        })
-      });
 });

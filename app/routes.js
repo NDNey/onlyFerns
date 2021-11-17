@@ -1,6 +1,9 @@
 var mongoose = require('mongoose');
-
-module.exports = function(app, passport, db, multer) {
+const cloudMSAi = require('../server');
+const cloudinary = cloudMSAi.cloudinary;
+const computerVisionClient = cloudMSAi.computerVisionClient;
+const sleep = cloudMSAi.sleep;
+module.exports = function(app, passport, db,multer,fs) {
 
 
 // MULTER ===============================================================
@@ -24,7 +27,7 @@ module.exports = function(app, passport, db, multer) {
 
     // PROFILE SECTION =========================
     app.get('/profile', isLoggedIn, function(req, res) {
-        db.collection('messages').find().toArray((err, result) => {
+        db.collection('messages').find({posterId:req.user._id}).toArray((err, result) => {
           if (err) return console.log(err)
           res.render('profile.ejs', {
             user : req.user,
@@ -34,7 +37,7 @@ module.exports = function(app, passport, db, multer) {
     });
     
  // FEED SECTION =========================
-    app.get('/feed', isLoggedIn, function(req, res) {
+    app.get('/feed', /*isLoggedIn,*/ function(req, res) {
       db.collection('messages').find().toArray((err, result) => {
         if (err) return console.log(err)
         res.render('feed.ejs', {
@@ -79,11 +82,6 @@ module.exports = function(app, passport, db, multer) {
             comments:commentsResult
           });
         });
-
-        // res.render('post.ejs', {
-        //   user: req.user,
-        //   messages: result,
-        // });
       });
   });
   // LOGOUT ==============================
@@ -93,16 +91,69 @@ module.exports = function(app, passport, db, multer) {
     });
 
 // message board routes ===============================================================
-
-    app.post('/messages', upload.single('uploadedFile'),  (req, res) => {
-      // let user = req.user.local.email
-      let posterId = req.user._id;
+app.post('/messages', upload.single('uploadedFile'), async (req, res) => {
+  try {
+     let posterId = req.user._id;
       let postedBy = req.user.local.email;
-      // console.log( req.file)
-      db.collection('messages').save({
+      let plant = false
+    // Upload image to cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+    const brandURLImage = result.secure_url;
+    console.log('-------------------------------------------------');
+    console.log('DETECT OBJECTS');
+    console.log();
+
+    // <snippet_objects>
+    const objectURL = brandURLImage;
+
+    // Analyze a URL image
+    console.log('Analyzing objects in image...', objectURL.split('/').pop());
+    const objects = (
+      await computerVisionClient.analyzeImage(objectURL, {
+        visualFeatures: ['Objects'],
+      })
+    ).objects;
+    console.log('objects!!!!', objects);
+
+    // Print objects bounding box and confidence
+    if (objects.length) {
+      console.log(
+        `${objects.length} object${objects.length == 1 ? '' : 's'} found:`
+      );
+      for (const obj of objects) {
+        if (obj.object.includes('plant')) {
+          plant = true;
+        }
+        console.log(
+          'hello',
+          `    ${obj.object} (${obj.confidence.toFixed(
+            2
+          )}) at ${formatRectObjects(obj.rectangle)}`
+        );
+      }
+    } else {
+      console.log('No objects found.');
+    }
+    // </snippet_objects>
+
+    // <snippet_objectformat>
+    // Formats the bounding box
+    function formatRectObjects(rect) {
+      return (
+        `top=${rect.y}`.padEnd(10) +
+        `left=${rect.x}`.padEnd(10) +
+        `bottom=${rect.y + rect.h}`.padEnd(12) +
+        `right=${rect.x + rect.w}`.padEnd(10) +
+        `(${rect.w}x${rect.h})`
+      );
+    }
+    if(plant === true){
+       db.collection('messages').save({
         name: req.body.name, 
         msg: req.body.msg, 
         img:req.file.filename,
+        image: result.secure_url,
+        cloudinaryId: result.public_id,
         thumbUp: 0, 
         thumbDown:0,
         posterId: new mongoose.Types.ObjectId(posterId),
@@ -112,7 +163,35 @@ module.exports = function(app, passport, db, multer) {
         console.log('saved to database')
         res.redirect('/profile')
       })
-    })
+    } else {
+      console.log('nice try loser!')
+      res.redirect('/profile')
+    }
+    
+  } catch (err) {
+    console.log(err);
+  }
+});
+// !=======================ORIGINAL========================
+    // app.post('/messages', upload.single('uploadedFile'),  (req, res) => {
+    //   // let user = req.user.local.email
+    //   let posterId = req.user._id;
+    //   let postedBy = req.user.local.email;
+    //   // console.log( req.file)
+    //   db.collection('messages').save({
+    //     name: req.body.name, 
+    //     msg: req.body.msg, 
+    //     img:req.file.filename,
+    //     thumbUp: 0, 
+    //     thumbDown:0,
+    //     posterId: new mongoose.Types.ObjectId(posterId),
+    //     postedBy: postedBy,
+    //   }, (err, result) => {
+    //     if (err) return console.log(err)
+    //     console.log('saved to database')
+    //     res.redirect('/profile')
+    //   })
+    // })
 // post comments===============================================================
 
     app.post('/comment', (req, res) => {
@@ -120,8 +199,7 @@ module.exports = function(app, passport, db, multer) {
       let posterId = req.user._id;
       let postedBy = req.user.local.email;
       let postId = req.body.postId
-      console.log('request' , req.body)
-      console.log('postId', postId)
+      
       db.collection('comments').save({
         comment: req.body.comment,
         posterId: new mongoose.Types.ObjectId(posterId),
@@ -135,8 +213,9 @@ module.exports = function(app, passport, db, multer) {
     })
 
     app.put('/messages', (req, res) => {
-      db.collection('messages')
-      .findOneAndUpdate({name: req.body.name, msg: req.body.msg}, {
+      console.log('post');
+      let id = new mongoose.Types.ObjectId(req.body.id)
+      db.collection('messages').findOneAndUpdate({_id:id}, {
         $set: {
           thumbUp:req.body.thumbUp + 1
         }
@@ -148,24 +227,20 @@ module.exports = function(app, passport, db, multer) {
         res.send(result)
       })
     })
-
-    app.put('/messagesDown', (req, res) => {
-      db.collection('messages')
-      .findOneAndUpdate({name: req.body.name, msg: req.body.msg}, {
-        $set: {
-          thumbUp:req.body.thumbUp - 1
-        }
-      }, {
-        sort: {_id: -1},
-        upsert: true
-      }, (err, result) => {
-        if (err) return res.send(err)
-        res.send(result)
-      })
-    })
-
+   
+     
     app.delete('/messages', (req, res) => {
-      db.collection('messages').findOneAndDelete({name: req.body.name, msg: req.body.msg}, (err, result) => {
+      let id = new mongoose.Types.ObjectId(req.body.id)
+
+     
+      fs.unlink(`public/${req.body.img}`, (err) => {
+        if (err) {
+          console.error(err)
+          return
+        }
+      })
+      
+      db.collection('messages').findOneAndDelete({_id:id}, (err, result) => {
         if (err) return res.send(500, err)
         res.send('Message deleted!')
       })
@@ -184,7 +259,7 @@ module.exports = function(app, passport, db, multer) {
 
         // process the login form
         app.post('/login', passport.authenticate('local-login', {
-            successRedirect : '/profile', // redirect to the secure profile section
+            successRedirect : '/feed', // redirect to the secure profile section
             failureRedirect : '/login', // redirect back to the signup page if there is an error
             failureFlash : true // allow flash messages
         }));

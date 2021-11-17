@@ -17,16 +17,28 @@ const session      = require('express-session');//declaring session and setting 
 const configDB = require('./config/database.js');//(declaring configDB and setting value to requiring ./config/database.js dependency (loading configuration))
 //everything has to be 'let', not 'const'. 
 const multer  = require('multer')
+const fs = require('fs')
 let db 
+require('dotenv').config({ path: './config/.env' });
 
-
+const upload = multer({
+  storage: multer.diskStorage({}),
+  fileFilter: (req, file, cb) => {
+    let ext = path.extname(file.originalname);
+    if (ext !== '.jpg' && ext !== '.jpeg' && ext !== '.png') {
+      cb(new Error('File type is not supported'), false);
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 // configuration ===============================================================
 mongoose.connect(configDB.url, (err, database) => {//mongoose.connect method with passed argument of function of url value in configDB
   //config is the path that is being passed to url
   if (err) return console.log(err)//console log if there is an error
   db = database //...databaaaase?
-  require('./app/routes.js')(app, passport, db, multer); //so this is the line that is require 
+  require('./app/routes.js')(app, passport, db,multer,fs); //so this is the line that is require 
 }); // connect to our database
 
 require('./config/passport')(passport); // pass passport (authentication) for configuration
@@ -55,3 +67,39 @@ app.use(flash()); // use connect-flash for flash messages stored in session
 // launch ======================================================================
 app.listen(port);
 console.log('The magic happens on port ' + port);
+
+// TODO AI
+//! cloudinary ======================
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
+//! Azure ====================
+// const axios = require('axios').default;
+const async = require('async');
+
+const https = require('https');
+const path = require('path');
+const createReadStream = require('fs').createReadStream;
+const sleep = require('util').promisify(setTimeout);
+const ComputerVisionClient =
+  require('@azure/cognitiveservices-computervision').ComputerVisionClient;
+const ApiKeyCredentials = require('@azure/ms-rest-js').ApiKeyCredentials;
+const key = process.env.MS_COMPUTER_VISION_SUBSCRIPTION_KEY;
+const endpoint = process.env.MS_COMPUTER_VISION_ENDPOINT;
+
+const computerVisionClient = new ComputerVisionClient(
+  new ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': key } }),
+  endpoint
+);
+
+// export=========
+module.exports = {
+  cloudinary: cloudinary,
+  computerVisionClient: computerVisionClient,
+  sleep: sleep,
+};
